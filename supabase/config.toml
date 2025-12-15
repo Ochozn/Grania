@@ -1,0 +1,5 @@
+project_id = "GranaZen"
+
+[functions.telegram-webhook]
+enabled = true
+entrypoint = "./supabase/functions/telegram-webhook/index.ts"

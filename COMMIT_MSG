@@ -1,0 +1,11 @@
+Inicialização do projeto GranaZen: Backend, Bot Telegram e IA com Fallback
+
+Funcionalidades implementadas nesta primeira versão:
+- Estrutura Backend Supabase (Docker)
+- Edge Function 'telegram-webhook'
+- Integração Telegram Bot API
+- Onboarding de Usuário (Contato + Senha)
+- Integração IA (Gemini 2.0 Flash)
+- Sistema de Fallback de IA (Llama 4)
+- Banco de Dados PostgreSQL (Migrations)
+- Túnel de Exposição Local (Localtunnel)
