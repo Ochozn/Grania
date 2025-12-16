@@ -8,7 +8,7 @@ export function Sidebar() {
             <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50/50 backdrop-blur-md border-r border-gray-200 dark:bg-gray-800/50 dark:border-gray-700 font-sans flex flex-col">
                 <Link href="/dashboard" className="flex items-center ps-2.5 mb-5 space-x-2">
                     <span className="self-center text-xl font-bold whitespace-nowrap text-green-600 dark:text-green-400 flex items-center gap-2">
-                        <span className="text-2xl">🌱</span> GranaZen
+                        <span className="text-2xl">🌱</span> Grania
                     </span>
                 </Link>
                 <ul className="space-y-2 font-medium flex-1">

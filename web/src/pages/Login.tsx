@@ -39,7 +39,7 @@ export default function Login() {
 
             const { data: user, error: dbError } = await supabase
                 .from('users')
-                .select('id, full_name')
+                .select('id, full_name, phone_number')
                 .in('phone_number', possiblePhones)
                 .eq('password', password)
                 .maybeSingle() // Prevents 406 error if not found
@@ -49,8 +49,10 @@ export default function Login() {
                 setError('Credenciais inválidas.')
             } else {
                 setSuccess(true)
-                // 3. Set Cookie manually (since no server action)
+                // 3. Set Cookies for session
                 document.cookie = `user_id=${user.id}; path=/; max-age=86400; SameSite=Strict`
+                document.cookie = `user_name=${encodeURIComponent(user.full_name || '')}; path=/; max-age=86400; SameSite=Strict`
+                document.cookie = `user_phone=${user.phone_number || ''}; path=/; max-age=86400; SameSite=Strict`
 
                 setTimeout(() => {
                     navigate('/dashboard')

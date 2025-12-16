@@ -1,4 +1,4 @@
-project_id = "GranaZen"
+project_id = "Grania"
 
 [functions.telegram-webhook]
 enabled = true

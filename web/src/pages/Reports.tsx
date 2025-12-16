@@ -57,16 +57,32 @@ export default function Reports() {
     const COLORS_INCOME = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0']
     const COLORS_EXPENSE = ['#ef4444', '#f87171', '#fca5a5', '#fecaca']
 
-    // Mock trend data
-    const trendData = [
-        { name: '01', income: 4000, expense: 2400 },
-        { name: '05', income: 3000, expense: 1398 },
-        { name: '10', income: 2000, expense: 9800 },
-        { name: '15', income: 2780, expense: 3908 },
-        { name: '20', income: 1890, expense: 4800 },
-        { name: '25', income: 2390, expense: 3800 },
-        { name: '31', income: 3490, expense: 4300 },
-    ]
+    // Real Trend Data Processing
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
+    const now = new Date()
+    const daysInMonth = getDaysInMonth(now.getFullYear(), now.getMonth())
+
+    const trendMap = new Map()
+    // Initialize all days
+    for (let i = 1; i <= daysInMonth; i++) {
+        trendMap.set(i, { name: `${i}`, income: 0, expense: 0 })
+    }
+
+    // Fill with data
+    transactions.forEach(t => {
+        const d = new Date(t.date)
+        // Only count if in current month/year for this chart
+        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+            const day = d.getDate()
+            const entry = trendMap.get(day)
+            if (entry) {
+                if (t.type === 'income') entry.income += t.amount
+                else entry.expense += t.amount
+            }
+        }
+    })
+
+    const trendData = Array.from(trendMap.values())
 
     return (
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">

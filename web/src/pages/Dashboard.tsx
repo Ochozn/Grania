@@ -17,6 +17,8 @@ export default function Dashboard() {
     const [income, setIncome] = useState(0)
     const [expense, setExpense] = useState(0)
     const [balance, setBalance] = useState(0)
+    const [incomeDetails, setIncomeDetails] = useState({ paid: 0, pending: 0 })
+    const [expenseDetails, setExpenseDetails] = useState({ paid: 0, pending: 0 })
 
     // Fetch Data
     async function fetchData() {
@@ -29,6 +31,8 @@ export default function Dashboard() {
         }
         const userId = getCookie('user_id')
 
+        console.log('[Dashboard] Fetching data for user:', userId)
+
         if (!userId) {
             navigate('/login')
             return
@@ -39,41 +43,60 @@ export default function Dashboard() {
             .from('transactions')
             .select('*')
             .eq('user_id', userId)
-            .order('date', { ascending: true })
+            .order('date', { ascending: false })
 
         // Apply Date Filter
         const now = new Date()
-        let startDate = new Date(0).toISOString()
+        let startDate: string | null = null
 
         if (dateRange === '7_days') {
             const d = new Date()
             d.setDate(d.getDate() - 7)
-            startDate = d.toISOString()
+            startDate = d.toISOString().split('T')[0]
         } else if (dateRange === 'this_month') {
             const d = new Date(now.getFullYear(), now.getMonth(), 1)
-            startDate = d.toISOString()
+            startDate = d.toISOString().split('T')[0]
         } else if (dateRange === 'this_year') {
             const d = new Date(now.getFullYear(), 0, 1)
-            startDate = d.toISOString()
+            startDate = d.toISOString().split('T')[0]
         } else if (dateRange === 'today') {
-            const d = new Date()
-            d.setHours(0, 0, 0, 0)
-            startDate = d.toISOString()
+            startDate = now.toISOString().split('T')[0]
         }
 
-        if (dateRange !== 'all') {
+        if (startDate && dateRange !== 'all') {
             query = query.gte('date', startDate)
         }
 
-        const { data } = await query
+        const { data, error } = await query
+
+        console.log('[Dashboard] Query result:', { data, error, count: data?.length })
+
+        if (error) {
+            console.error('[Dashboard] Error:', error)
+        }
 
         if (data) {
             setTransactions(data)
-            const inc = data.filter((t: any) => t.type === 'income').reduce((acc: number, t: any) => acc + t.amount, 0)
-            const exp = data.filter((t: any) => t.type === 'expense').reduce((acc: number, t: any) => acc + t.amount, 0)
-            setIncome(inc)
-            setExpense(exp)
-            setBalance(inc - exp)
+
+            // Calculate Income
+            const incomeTransactions = data.filter((t: any) => t.type === 'income')
+            const totalIncome = incomeTransactions.reduce((acc: number, t: any) => acc + t.amount, 0)
+            const incomePaid = incomeTransactions.filter((t: any) => t.status === 'paid').reduce((acc: number, t: any) => acc + t.amount, 0)
+            const incomePending = incomeTransactions.filter((t: any) => t.status === 'pending').reduce((acc: number, t: any) => acc + t.amount, 0)
+
+            // Calculate Expense
+            const expenseTransactions = data.filter((t: any) => t.type === 'expense')
+            const totalExpense = expenseTransactions.reduce((acc: number, t: any) => acc + t.amount, 0)
+            const expensePaid = expenseTransactions.filter((t: any) => t.status === 'paid').reduce((acc: number, t: any) => acc + t.amount, 0)
+            const expensePending = expenseTransactions.filter((t: any) => t.status === 'pending').reduce((acc: number, t: any) => acc + t.amount, 0)
+
+            // Set States
+            setIncome(totalIncome) // Total Expected Income
+            setExpense(totalExpense) // Total Expected Expense
+            setBalance(totalIncome - totalExpense) // Projected Balance
+
+            setIncomeDetails({ paid: incomePaid, pending: incomePending })
+            setExpenseDetails({ paid: expensePaid, pending: expensePending })
         }
         setLoading(false)
     }
@@ -107,6 +130,8 @@ export default function Dashboard() {
                     income={income}
                     expense={expense}
                     balance={balance}
+                    incomeDetails={incomeDetails}
+                    expenseDetails={expenseDetails}
                 />
 
                 {/* Main Grid: Transactions + Sidebar Charts */}
