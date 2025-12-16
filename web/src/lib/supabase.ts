@@ -14,4 +14,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Supabase URLs missing. Check your .env file and ensure they start with VITE_")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+        headers: {
+            'Bypass-Tunnel-Reminder': 'true'
+        }
+    }
+})
