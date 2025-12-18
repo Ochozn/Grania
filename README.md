@@ -1,4 +1,4 @@
-# 🧘 Grania (Open Source)
+# 🧘 Grania
 
 > **Gestão financeira simplificada com Telegram e Inteligência Artificial.**
 
