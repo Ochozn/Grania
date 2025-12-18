@@ -1,5 +1,9 @@
 project_id = "Grania"
 
+[auth]
+site_url = "https://grania.vercel.app"
+additional_redirect_urls = ["http://localhost:5173", "https://grania.vercel.app/**", "https://leslie-surfaces-surrounding-fioricet.trycloudflare.com/**"]
+
 [functions.telegram-webhook]
 enabled = true
 entrypoint = "./supabase/functions/telegram-webhook/index.ts"

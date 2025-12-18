@@ -1,5 +1,5 @@
 
-import { Search, ListFilter, ArrowUpCircle, ArrowDownCircle, FileText, Plus, Clock, RefreshCw, Pin, Calendar, Hash } from 'lucide-react'
+import { Search, ArrowUpCircle, ArrowDownCircle, FileText, Calendar, Clock, RefreshCw } from 'lucide-react'
 
 interface Transaction {
     id: string
@@ -14,11 +14,18 @@ interface Transaction {
     status?: 'paid' | 'pending' | 'overdue'
     recurrence?: 'none' | 'monthly' | 'weekly' | 'yearly'
     is_fixed?: boolean
+    users?: { full_name: string }
 }
+
 
 interface TransactionListProps {
     transactions: Transaction[]
     loading: boolean
+    filterStatus: string
+    setFilterStatus: (status: string) => void
+    onAddIncome: () => void
+    onAddExpense: () => void
+    isShared?: boolean
 }
 
 const recurrenceLabels: Record<string, string> = {
@@ -27,149 +34,153 @@ const recurrenceLabels: Record<string, string> = {
     yearly: 'Anual'
 }
 
-export function TransactionList({ transactions, loading }: TransactionListProps) {
+export function TransactionList({ transactions, loading, filterStatus, setFilterStatus, onAddIncome, onAddExpense, isShared }: TransactionListProps) {
+
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
 
             {/* Controls Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* Month Navigator (Mini) */}
-                <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-                    <button className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">{'<'}</button>
-                    <span className="text-sm font-semibold px-2 text-gray-700 dark:text-gray-200">Dezembro</span>
-                    <button className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">{'>'}</button>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+
+                {/* Tabs / Filter Pills */}
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                    {[
+                        { id: 'all', label: 'Todas' },
+                        { id: 'income', label: 'Receitas' },
+                        { id: 'expense', label: 'Despesas' },
+                        { id: 'pending', label: 'A Pagar' },
+                        { id: 'receivable', label: 'A Receber' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setFilterStatus(tab.id)}
+                            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap ${filterStatus === tab.id
+                                ? 'bg-slate-900 text-white shadow-md dark:bg-white dark:text-slate-900'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
+                                }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Right Actions */}
-                <div className="flex items-center gap-2 ml-auto w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none justify-center bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all flex items-center gap-2">
-                        <ArrowUpCircle size={16} />
+                {/* Right Actions - Hidden on mobile, visible on desktop */}
+                <div className="hidden md:flex items-center gap-2">
+                    <button
+                        onClick={onAddIncome}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all flex items-center gap-2 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                    >
+                        <ArrowUpCircle size={18} />
                         Receita
                     </button>
-                    <button className="flex-1 sm:flex-none justify-center bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all flex items-center gap-2">
-                        <ArrowDownCircle size={16} />
+                    <button
+                        onClick={onAddExpense}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all flex items-center gap-2 border border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
+                    >
+                        <ArrowDownCircle size={18} />
                         Despesa
                     </button>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="bg-white rounded-3xl shadow-sm p-6 min-h-[400px] dark:bg-gray-800 flex flex-col">
-                {/* Tabs */}
-                <div className="flex items-center gap-8 border-b border-gray-100 pb-4 mb-6 dark:border-gray-700 overflow-x-auto no-scrollbar">
-                    <button className="text-sm font-bold text-gray-800 border-b-2 border-gray-800 pb-4 -mb-4.5 dark:text-white dark:border-white whitespace-nowrap">Todas</button>
-                    <button className="text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 whitespace-nowrap">Receitas</button>
-                    <button className="text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 whitespace-nowrap">Despesas</button>
-                    <button className="text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 whitespace-nowrap">A Pagar</button>
-                    <button className="text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 whitespace-nowrap">A Receber</button>
-                </div>
+            {/* List Header Search */}
+            <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600 dark:group-focus-within:text-slate-300 transition-colors" size={20} />
+                <input
+                    type="text"
+                    placeholder="Buscar transações..."
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:focus:ring-white/10 transition-all shadow-sm"
+                />
+            </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Pesquisar por descrição ou código..."
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
-                            <span>Data de Vencimento</span>
-                            <ArrowUpCircle size={14} className="rotate-180" />
-                        </button>
-                        <button className="p-2.5 border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 dark:border-gray-600">
-                            <ListFilter size={18} />
-                        </button>
-                    </div>
-                </div>
+            {/* Main Content Area */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 min-h-[400px] flex flex-col overflow-hidden">
 
                 {/* List / Empty State */}
                 {loading ? (
-                    <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                    <div className="flex-1 flex items-center justify-center p-12">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="h-8 w-8 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin dark:border-white/30 dark:border-t-white"></div>
+                            <p className="text-sm font-medium text-slate-500 animate-pulse">Carregando...</p>
+                        </div>
                     </div>
                 ) : transactions.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center py-12 text-center min-h-[200px]">
-                        <div className="h-24 w-24 bg-gray-50 rounded-full flex items-center justify-center mb-4 dark:bg-gray-700">
-                            <FileText size={40} className="text-gray-300 dark:text-gray-500" />
+                    <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
+                        <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 dark:bg-slate-700/30">
+                            <FileText size={40} className="text-slate-300 dark:text-slate-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-1 dark:text-white">Nenhuma transação encontrada</h3>
-                        <p className="text-gray-400 text-sm mb-6">Não há transações para exibir no período selecionado.</p>
-
-                        <button className="flex items-center gap-2 text-green-600 font-bold hover:bg-green-50 px-4 py-2 rounded-xl transition-colors dark:hover:bg-green-900/20 dark:text-green-400">
-                            <Plus size={20} />
-                            Adicionar Nova Transação
-                        </button>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2 dark:text-white">Nenhuma transação</h3>
+                        <p className="text-slate-500 text-sm max-w-xs mx-auto leading-relaxed">Não encontramos movimentações para este período ou filtro selecionado.</p>
                     </div>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                         {transactions.map(t => (
-                            <div key={t.id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all dark:hover:bg-gray-700/50">
-                                <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                                    <div className={`h-12 w-12 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} group-hover:scale-110 transition-transform`}>
-                                        {t.type === 'income' ? <ArrowUpCircle size={24} /> : <ArrowDownCircle size={24} />}
+                            <div key={t.id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 hover:bg-slate-50/80 transition-all duration-200 dark:hover:bg-slate-700/30 cursor-default">
+                                <div className="flex items-start gap-5 mb-4 sm:mb-0">
+                                    <div className={`mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${t.type === 'income'
+                                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+                                        : 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                                        }`}>
+                                        {t.type === 'income' ? <ArrowUpCircle size={24} strokeWidth={1.5} /> : <ArrowDownCircle size={24} strokeWidth={1.5} />}
                                     </div>
+
                                     <div>
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-bold text-gray-900 dark:text-white">{t.description}</p>
-                                            {t.tx_code && (
-                                                <span className="text-[10px] font-mono bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded dark:bg-gray-600 dark:text-gray-300">
-                                                    {t.tx_code}
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <p className="font-bold text-slate-900 dark:text-white text-base leading-tight">{t.description}</p>
+                                            {isShared && t.users && (
+                                                <span className="text-[10px] uppercase font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-400 tracking-wider">
+                                                    {t.users.full_name.split(' ')[0]}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
-                                            <span className="bg-gray-100 px-2 py-0.5 rounded-md dark:bg-gray-600 dark:text-gray-300">{t.category}</span>
-                                            {t.subcategory && (
-                                                <span className="text-gray-400">/ {t.subcategory}</span>
-                                            )}
-                                            <span>•</span>
+
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            <span className="text-slate-600 dark:text-slate-300">{t.category}</span>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                                             <span className="flex items-center gap-1">
-                                                <Calendar size={10} />
+                                                <Calendar size={12} />
                                                 {new Date(t.date).toLocaleDateString('pt-BR')}
                                             </span>
+
                                             {t.status === 'pending' && t.due_date && (
-                                                <span className="text-orange-500 flex items-center gap-0.5">
-                                                    <Clock size={10} /> Vence {new Date(t.due_date).toLocaleDateString('pt-BR')}
-                                                </span>
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                                    <span className="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                        <Clock size={12} /> Vence {new Date(t.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                    </span>
+                                                </>
                                             )}
+
                                             {t.recurrence && t.recurrence !== 'none' && (
-                                                <span className="text-blue-500 flex items-center gap-0.5 bg-blue-50 px-1.5 py-0.5 rounded dark:bg-blue-900/30">
-                                                    <RefreshCw size={10} /> {recurrenceLabels[t.recurrence]}
-                                                </span>
-                                            )}
-                                            {t.is_fixed && (
-                                                <span className="text-purple-500 flex items-center gap-0.5 bg-purple-50 px-1.5 py-0.5 rounded dark:bg-purple-900/30">
-                                                    <Pin size={10} /> Fixa
-                                                </span>
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                                    <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded dark:bg-sky-500/10 dark:text-sky-400 text-[10px]">
+                                                        <RefreshCw size={10} /> {recurrenceLabels[t.recurrence]}
+                                                    </span>
+                                                </>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="text-right pl-[4rem] sm:pl-0">
-                                    <p className={`font-bold text-lg ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+
+                                <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end gap-1 pl-[4.25rem] sm:pl-0">
+                                    <p className={`font-bold text-lg font-display tracking-tight ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                         {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </p>
-                                    <div className="flex items-center justify-end gap-1 mt-1">
-                                        {t.status === 'pending' ? (
-                                            <>
-                                                <span className="h-2 w-2 rounded-full bg-orange-500"></span>
-                                                <span className="text-xs text-orange-600 font-medium">Pendente</span>
-                                            </>
-                                        ) : t.status === 'overdue' ? (
-                                            <>
-                                                <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                                                <span className="text-xs text-red-600 font-medium">Atrasado</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                                                <span className="text-xs text-green-600 font-medium">Pago</span>
-                                            </>
-                                        )}
-                                    </div>
+
+                                    {t.status === 'pending' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[11px] font-bold dark:bg-amber-500/10 dark:text-amber-400">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pendente
+                                        </span>
+                                    ) : t.status === 'overdue' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold dark:bg-rose-500/10 dark:text-rose-400">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Atrasado
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold dark:bg-emerald-500/10 dark:text-emerald-400">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pago
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}

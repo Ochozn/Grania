@@ -11,6 +11,7 @@ export default function Transactions() {
     const [loading, setLoading] = useState(true)
     const [transactions, setTransactions] = useState<any[]>([])
     const [dateRange, setDateRange] = useState('this_month')
+    const [currentDate, setCurrentDate] = useState(new Date())
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState('all') // all, income, expense
 
@@ -98,6 +99,8 @@ export default function Transactions() {
                     dateRange={dateRange}
                     setDateRange={setDateRange}
                     onRefresh={fetchData}
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
                 />
 
                 <div className="bg-white rounded-3xl shadow-sm p-6 min-h-[600px] dark:bg-gray-800">

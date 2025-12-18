@@ -113,6 +113,7 @@ Exemplos:
   "query_context": string,
   
   // Chat
+  // CRÍTICO: Se for uma pergunta, responda COMPLETAMENTE aqui. Não diga apenas "Vou explicar". Explique.
   "message": string
 }
 `
@@ -207,8 +208,14 @@ serve(async (req) => {
         const ai = await callAI(contentForAI, SYSTEM_PROMPT)
         console.log('AI Result:', JSON.stringify(ai))
 
+        // Normalize AI response keys (handle model hallucinations)
+        if (ai.type && !ai.action) ai.action = ai.type
+        if (ai.response && !ai.message) ai.message = ai.response
+        if (ai.answer && !ai.message) ai.message = ai.answer
+        if (ai.reply && !ai.message) ai.message = ai.reply
+
         // === CHAT ===
-        if (ai.action === 'chat') {
+        if (ai.action === 'chat' || ai.action === 'message') {
             await sendTelegramMessage(chatId, ai.message || "Olá! Como posso ajudar com suas finanças? 💰")
         }
 
@@ -290,8 +297,16 @@ ${typeEmoji} *Tipo:* ${typeLabel}
             const periods = ai.periods || [{ start_date: ai.start_date, end_date: ai.end_date, label: 'Período' }]
 
             // Fetch data for each period
+            // First get family members logic
+            const { data: familyMembers } = await supabase
+                .from('users')
+                .select('id')
+                .eq('family_id', user.family_id)
+
+            const familyIds = familyMembers ? familyMembers.map((m: any) => m.id) : [user.id]
+
             for (const period of periods) {
-                let query = supabase.from('transactions').select('*').eq('user_id', user.id)
+                let query = supabase.from('transactions').select('*').in('user_id', familyIds)
                 if (ai.filter_type === 'expense') query = query.eq('type', 'expense')
                 if (ai.filter_type === 'income') query = query.eq('type', 'income')
                 if (period.start_date) query = query.gte('date', period.start_date)
@@ -381,7 +396,12 @@ async function getTelegramFileUrl(fileId: string): Promise<string> {
 }
 
 async function callAI(content: any[], system: string, jsonMode = true) {
-    const models = ["google/gemini-2.0-flash-exp:free", "meta-llama/llama-4-maverick", "deepseek/deepseek-chat-v3-0324"]
+    // Updated Model List per user request
+    const models = [
+        "google/gemini-2.0-flash-exp:free",
+        "openai/gpt-oss-120b:free",
+        "deepseek/deepseek-v3.2"
+    ]
 
     for (const model of models) {
         try {
@@ -403,7 +423,8 @@ async function callAI(content: any[], system: string, jsonMode = true) {
             const data = await res.json()
             if (data.error) throw new Error(JSON.stringify(data.error))
             const contentStr = data.choices[0].message.content
-            return jsonMode ? JSON.parse(contentStr) : contentStr
+            const cleanContent = contentStr.replace(/```json\n?|```/g, '').trim()
+            return jsonMode ? JSON.parse(cleanContent) : cleanContent
         } catch (e) {
             console.warn(`Model ${model} failed:`, e)
         }

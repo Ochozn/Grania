@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
 import Categories from './pages/Categories'
+import Settings from './pages/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
                     <Route path="/dashboard/transactions" element={<Transactions />} />
                     <Route path="/dashboard/reports" element={<Reports />} />
                     <Route path="/dashboard/categories" element={<Categories />} />
+                    <Route path="/dashboard/settings" element={<Settings />} />
                 </Route>
             </Routes>
         </BrowserRouter>
